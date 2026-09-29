@@ -46,7 +46,7 @@ const MUTATIONS = new Set([
   "SetPreference",
 ]);
 const READ_ONLY = new Set(["List", "Preview", "DirectPreview", "PreviewURL"]);
-const STORAGE_INDEPENDENT_COMMANDS = new Set(["SetPreference"]);
+const STORAGE_INDEPENDENT_COMMANDS = new Set(["OpenSettings", "SetPreference"]);
 const REQUEST_FIELDS = new Map([
   ["List", []],
   ["DirectPreview", []],
@@ -58,6 +58,7 @@ const REQUEST_FIELDS = new Map([
   ["MarkRead", ["feedURL", "id", "read"]],
   ["Save", ["feedURL", "id", "saved"]],
   ["SetPreference", ["name", "value"]],
+  ["OpenSettings", []],
   ["OpenReader", ["feedURL", "id"]],
   ["OpenOriginal", ["feedURL", "id"]],
 ]);
@@ -364,6 +365,11 @@ export class FeedPageParent extends JSWindowActorParent {
             );
           }
           value = this.#preferences();
+          break;
+        case "OpenSettings":
+          this.browsingContext.embedderElement.documentGlobal.openPreferences(
+            "paneFeeds"
+          );
           break;
       }
       this.#assertPage();
