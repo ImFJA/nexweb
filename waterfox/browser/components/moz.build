@@ -6,7 +6,6 @@ DIRS += [
     "aboutcfg",
     "extensions",
     "feeds",
-    "icloudpasswords",
     "migration",
     "onboarding",
     "privatetab",
