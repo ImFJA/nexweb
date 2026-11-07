@@ -115,17 +115,10 @@ ChromeUtils.defineESModuleGetters(this, {
   UrlbarTokenizer:
     "moz-src:///browser/components/urlbar/UrlbarTokenizer.sys.mjs",
   UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
-  Weave: "resource://services-sync/main.sys.mjs",
   WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.sys.mjs",
   webrtcUI: "resource:///modules/webrtcUI.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
   ZoomUI: "resource:///modules/ZoomUI.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(this, "fxAccounts", () => {
-  return ChromeUtils.importESModule(
-    "resource://gre/modules/FxAccounts.sys.mjs"
-  ).getFxAccountsSingleton();
 });
 
 XPCOMUtils.defineLazyScriptGetter(
@@ -238,11 +231,6 @@ XPCOMUtils.defineLazyScriptGetter(
   this,
   "gSafeBrowsing",
   "chrome://browser/content/browser-safebrowsing.js"
-);
-XPCOMUtils.defineLazyScriptGetter(
-  this,
-  "gSync",
-  "chrome://browser/content/browser-sync.js"
 );
 XPCOMUtils.defineLazyScriptGetter(
   this,
@@ -564,26 +552,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "gFxaToolbarEnabled",
-  "identity.fxaccounts.toolbar.enabled",
-  false,
-  (aPref, aOldVal, aNewVal) => {
-    updateFxaToolbarMenu(aNewVal);
-  }
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "gFxaToolbarAccessed",
-  "identity.fxaccounts.toolbar.accessed",
-  false,
-  () => {
-    updateFxaToolbarMenu(gFxaToolbarEnabled);
-  }
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
   "gAddonAbuseReportEnabled",
   "extensions.abuseReport.enabled",
   false
@@ -769,44 +737,6 @@ var gNavigatorBundle = {
   },
 };
 
-function updateFxaToolbarMenu(enable, isInitialUpdate = false) {
-  // We only show the Firefox Account toolbar menu if the feature is enabled and
-  // if sync is enabled.
-  const syncEnabled = Services.prefs.getBoolPref(
-    "identity.fxaccounts.enabled",
-    false
-  );
-
-  const mainWindowEl = document.documentElement;
-  const fxaPanelEl = PanelMultiView.getViewNode(document, "PanelUI-fxa");
-  const taskbarTab = mainWindowEl.hasAttribute("taskbartab");
-
-  // To minimize the toolbar button flickering or appearing/disappearing during startup,
-  // we use this pref to anticipate the likely FxA status.
-  const statusGuess = !!Services.prefs.getStringPref(
-    "identity.fxaccounts.account.device.name",
-    ""
-  );
-  mainWindowEl.setAttribute(
-    "fxastatus",
-    statusGuess ? "signed_in" : "not_configured"
-  );
-
-  fxaPanelEl.addEventListener("ViewShowing", gSync.updateSendToDeviceTitle);
-
-  if (enable && syncEnabled && !taskbarTab) {
-    mainWindowEl.setAttribute("fxatoolbarmenu", "visible");
-
-    // We have to manually update the sync state UI when toggling the FxA toolbar
-    // because it could show an invalid icon if the user is logged in and no sync
-    // event was performed yet.
-    if (!isInitialUpdate) {
-      gSync.maybeUpdateUIState();
-    }
-  } else {
-    mainWindowEl.removeAttribute("fxatoolbarmenu");
-  }
-}
 
 function UpdateBackForwardCommands(aWebNavigation) {
   var backCommand = document.getElementById("Browser:Back");
@@ -4846,10 +4776,6 @@ var FirefoxViewHandler = {
   },
   init() {
     CustomizableUI.addListener(this);
-
-    ChromeUtils.defineESModuleGetters(this, {
-      SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
-    });
   },
   uninit() {
     CustomizableUI.removeListener(this);
@@ -4925,38 +4851,6 @@ var FirefoxViewHandler = {
       case "activate":
         this._onTabForegrounded();
         break;
-    }
-  },
-  _closeDeviceConnectedTab() {
-    if (!TabsSetupFlowManager.didFxaTabOpen) {
-      return;
-    }
-    // close the tab left behind after a user pairs a device and
-    // is redirected back to the Firefox View tab
-    const fxaRoot = Services.prefs.getCharPref(
-      "identity.fxaccounts.remote.root"
-    );
-    const fxDeviceConnectedTab = gBrowser.tabs.find(tab =>
-      tab.linkedBrowser.currentURI.displaySpec.startsWith(
-        `${fxaRoot}pair/auth/complete`
-      )
-    );
-
-    if (!fxDeviceConnectedTab) {
-      return;
-    }
-
-    if (gBrowser.tabs.length <= 2) {
-      // if its the only tab besides the Firefox View tab,
-      // open a new tab first so the browser doesn't close
-      gBrowser.addTrustedTab("about:newtab");
-    }
-    gBrowser.removeTab(fxDeviceConnectedTab);
-    TabsSetupFlowManager.didFxaTabOpen = false;
-  },
-  _onTabForegrounded() {
-    if (this.tab?.selected) {
-      this.SyncedTabs.syncTabs();
     }
   },
   _recordViewIfTabSelected() {

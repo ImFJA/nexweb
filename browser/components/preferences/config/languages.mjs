@@ -51,11 +51,20 @@ export const Multilingual = {
   /**
    * @returns {Promise<Locale[]>}
    */
+
+  // Fixed
   async installedLocales() {
+    let availableLocales = [];
+    if (typeof LangPackMatcher !== "undefined" && LangPackMatcher?.getAvailableLocales) {
+      availableLocales = await LangPackMatcher.getAvailableLocales();
+    } else {
+      availableLocales = [Services.locale.appLocaleAsBCP47];
+    }
+
     return this.localizeArray(
-      /** @type {LocaleCode[]} */ (await LangPackMatcher.getAvailableLocales()),
-      code => code,
-      (code, label) => ({ code, label })
+      /** @type {LocaleCode[]} */ (availableLocales),
+                              code => code,
+                              (code, label) => ({ code, label })
     );
   },
 

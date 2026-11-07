@@ -4,6 +4,11 @@
 
 /* global UpdateUtils, BackgroundUpdate, gApplicationUpdateService, gSubDialog, UpdateListener, appUpdater, gAppUpdater:writable */
 
+//Fix for ReferenceError: UpdateUtils is not defined (about-firefox.mjs)
+const { UpdateUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/UpdateUtils.sys.mjs"
+);
+
 import { Preferences } from "chrome://global/content/preferences/Preferences.mjs";
 import { SettingGroupManager } from "chrome://browser/content/preferences/config/SettingGroupManager.mjs";
 
@@ -40,13 +45,17 @@ const UpdatesHelpers = {
 
   get showUpdatesInstallation() {
     let updateDisabled =
-      Services.policies && !Services.policies.isAllowed("appUpdate");
+    Services.policies && !Services.policies.isAllowed("appUpdate");
+    let manualOnly =
+    typeof gApplicationUpdateService !== "undefined" &&
+    gApplicationUpdateService?.manualUpdateOnly;
+
     return (
       this.showUpdatesSettings &&
       !(
         updateDisabled ||
         UpdateUtils.appUpdateAutoSettingIsLocked() ||
-        gApplicationUpdateService.manualUpdateOnly
+        manualOnly
       )
     );
   },
@@ -61,7 +70,6 @@ const UpdatesHelpers = {
       !UpdateUtils.appUpdateSettingIsLocked("app.update.background.enabled")
     );
   },
-
   /**
    * Displays the history of installed updates.
    */

@@ -107,11 +107,7 @@ if (AppConstants.ENABLE_WEBDRIVER) {
 
 const PREF_PDFJS_ISDEFAULT_CACHE_STATE = "pdfjs.enabledCache.state";
 
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "WeaveService",
-  () => Cc["@mozilla.org/weave/service;1"].getService().wrappedJSObject
-);
+lazy.WeaveService = null;
 
 if (AppConstants.MOZ_CRASHREPORTER) {
   ChromeUtils.defineESModuleGetters(lazy, {
@@ -792,11 +788,6 @@ BrowserGlue.prototype = {
 
     this._checkForOldBuildUpdates();
 
-    // Check if Sync is configured
-    if (Services.prefs.prefHasUserValue("services.sync.username")) {
-      lazy.WeaveService.init();
-    }
-
     lazy.BrowserUtils.callModulesFromCategory(
       {
         categoryName: "browser-first-window-ready",
@@ -1254,17 +1245,6 @@ BrowserGlue.prototype = {
             "@mozilla.org/login-detection-service;1"
           ].createInstance(Ci.nsILoginDetectionService);
           loginDetection.init();
-        },
-      },
-
-      // Schedule a sync (if enabled) after we've loaded
-      {
-        name: "WeaveService",
-        task: async () => {
-          if (lazy.WeaveService.enabled) {
-            await lazy.WeaveService.whenLoaded();
-            lazy.WeaveService.Weave.Service.scheduler.autoConnect();
-          }
         },
       },
 

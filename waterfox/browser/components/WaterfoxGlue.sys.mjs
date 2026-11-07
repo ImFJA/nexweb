@@ -5,8 +5,6 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ICloudPasswordsIntegration:
-    "resource:///modules/ICloudPasswordsIntegration.sys.mjs",
   LiveBookmarksUI: "resource:///modules/LiveBookmarksUI.sys.mjs",
   PrivateTab: "resource:///modules/PrivateTab.sys.mjs",
   StatusBar: "resource:///modules/StatusBar.sys.mjs",
@@ -15,10 +13,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TreeTabsStore: "resource:///modules/TreeTabsStore.sys.mjs",
   TreeTabsUI: "resource:///modules/TreeTabsUI.sys.mjs",
   UICustomizations: "resource:///modules/UICustomizations.sys.mjs",
-  WaterfoxBlockerExtensionDetector:
-    "resource:///modules/WaterfoxBlockerExtensionDetector.sys.mjs",
-  WaterfoxBlockerPanel: "resource:///modules/WaterfoxBlockerPanel.sys.mjs",
-  WaterfoxBlockerService: "resource:///modules/WaterfoxBlockerService.sys.mjs",
   WaterfoxSearchExtensionPolicy:
     "resource:///modules/WaterfoxSearchExtensionPolicy.sys.mjs",
   WaterfoxSearchTweaks: "resource:///modules/WaterfoxSearchTweaks.sys.mjs",
@@ -66,43 +60,6 @@ export const WaterfoxGlue = {
     lazy.WaterfoxSearchExtensionPolicy.init();
     lazy.WaterfoxSearchTweaks.init();
 
-    // Register the blocker window actors early so cosmetic filtering and
-    // scriptlet hooks run for the first pages.
-    ChromeUtils.registerWindowActor("WaterfoxBlocker", {
-      parent: {
-        esModuleURI: "resource:///modules/WaterfoxBlockerParent.sys.mjs",
-      },
-      child: {
-        esModuleURI: "resource:///modules/WaterfoxBlockerChild.sys.mjs",
-        events: {
-          DOMWindowCreated: {},
-          DOMDocElementInserted: {},
-        },
-      },
-      allFrames: true,
-      messageManagerGroups: ["browsers"],
-      // DOMWindowCreated can happen before URL match patterns settle.
-      // Keep protocol matching broad and gate to http and https inside
-      // the child.
-      remoteTypes: ["web"],
-    });
-
-    // The blocked page actor handles the "Load anyway" click so the parent
-    // can record a session permission before the navigation happens.
-    ChromeUtils.registerWindowActor("WaterfoxBlockedPage", {
-      parent: {
-        esModuleURI: "resource:///modules/WaterfoxBlockedPageParent.sys.mjs",
-      },
-      child: {
-        esModuleURI: "resource:///modules/WaterfoxBlockedPageChild.sys.mjs",
-        events: {
-          click: {},
-        },
-      },
-      matches: ["about:contentblocked?*"],
-      allFrames: true,
-    });
-
     // The onboarding page is served as about:welcome and talks to the parent
     // through this actor for locale switching and applying setup choices.
     ChromeUtils.registerWindowActor("WaterfoxOnboarding", {
@@ -119,11 +76,6 @@ export const WaterfoxGlue = {
       remoteTypes: ["parent", "privilegedabout"],
     });
 
-    lazy.WaterfoxBlockerPanel.init();
-    lazy.WaterfoxBlockerExtensionDetector.init();
-    lazy.WaterfoxBlockerService.init().catch(error =>
-      console.error("WaterfoxBlockerService startup init failed", error)
-    );
 
     lazy.LiveBookmarksUI.init();
     lazy.PrivateTab.init();
@@ -149,12 +101,6 @@ export const WaterfoxGlue = {
   },
 
   prepareProfileUpgrade() {
-    lazy.ICloudPasswordsIntegration.init();
-    const version = Services.prefs.getIntPref(MIGRATION_PREF, 0);
-    if (version <= 0 || version >= SIDEBAR_MIGRATION_VERSION) {
-      return;
-    }
-
     setBoolPrefIfUnset(SIDEBAR_REVAMP_PREF, false);
     setBoolPrefIfUnset(SIDEBAR_DEFAULT_LAUNCHER_VISIBLE_PREF, false);
   },

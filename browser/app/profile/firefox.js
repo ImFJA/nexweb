@@ -3631,3 +3631,6 @@ pref("distribution.mozillaonline.ignore", true);
 #ifdef XP_MACOSX
   pref("browser.macAppMenu.setAsDefaultShown", false);
 #endif
+
+// Fix for the error  PreferenceNotAddedError (Search & Privacy)
+pref("browser.privatebrowsing.autostart", false);

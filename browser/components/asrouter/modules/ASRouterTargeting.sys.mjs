@@ -725,18 +725,7 @@ const TargetingGetters = {
     return lazy.isFxAEnabled;
   },
   get isFxASignedIn() {
-    return new Promise(resolve => {
-      if (!lazy.isFxAEnabled) {
-        resolve(false);
-      }
-      if (Services.prefs.getStringPref(FXA_USERNAME_PREF, "")) {
-        resolve(true);
-      }
-      lazy.fxAccounts
-        .getSignedInUser()
-        .then(data => resolve(!!data))
-        .catch(() => resolve(false));
-    });
+    return false;
   },
   get sync() {
     return {

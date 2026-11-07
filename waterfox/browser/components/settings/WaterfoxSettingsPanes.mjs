@@ -14,18 +14,6 @@ const WATERFOX_CONFIG_PANES = Object.freeze({
     groupIds: ["waterfoxFeeds", "waterfoxFeedsSubscribe", "waterfoxFeedsOPML"],
     module: "chrome://browser/content/waterfox/settings/waterfoxFeeds.mjs",
   },
-  adBlocking: {
-    l10nId: "waterfox-blocker-pane-header",
-    iconSrc: "chrome://browser/content/blocker/waterfoxShield.svg",
-    groupIds: [
-      "waterfoxBlocker",
-      "waterfoxBlockerLists",
-      "waterfoxBlockerExceptions",
-    ],
-    module: "chrome://browser/content/waterfox/settings/waterfoxAdBlocking.mjs",
-    visible: () =>
-      Services.prefs.getBoolPref("waterfox.blocker.ui.enabled", false),
-  },
 });
 
 // This module loads synchronously in init_all(), before category navigation.
@@ -92,15 +80,6 @@ if (Services.prefs.getBoolPref("browser.settings-redesign.enabled", false)) {
   );
   ChromeUtils.importESModule(
     "chrome://browser/content/waterfox/settings/waterfoxAppearanceOptions.mjs",
-    { global: "current" }
-  );
-
-  const passwordsPane = SettingPaneManager.get("passwordsAutofill");
-  passwordsPane.groupIds = passwordsPane.groupIds.flatMap(groupId =>
-    groupId == "passwords" ? [groupId, "waterfoxICloudPasswords"] : [groupId]
-  );
-  ChromeUtils.importESModule(
-    "chrome://browser/content/waterfox/settings/waterfoxICloudPasswords.mjs",
     { global: "current" }
   );
 

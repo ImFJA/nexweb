@@ -297,8 +297,6 @@ var gBrowserInit = {
       }
     });
 
-    updateFxaToolbarMenu(gFxaToolbarEnabled, true);
-
     updatePrintCommands(gPrintEnabled);
 
     // Setting the focus will cause a style flush, it's preferable to call anything
@@ -1054,11 +1052,6 @@ var gBrowserInit = {
     }
 
     scheduleIdleTask(() => {
-      // Initialize the Sync UI
-      gSync.init();
-    });
-
-    scheduleIdleTask(() => {
       // Read prefers-reduced-motion setting
       let reduceMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
@@ -1213,8 +1206,6 @@ var gBrowserInit = {
     gHistorySwipeAnimation.uninit();
 
     FullScreen.uninit();
-
-    gSync.uninit();
 
     gExtensionsNotifications.uninit();
 

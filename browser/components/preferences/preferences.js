@@ -54,15 +54,6 @@ var { PrivateBrowsingUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PrivateBrowsingUtils.sys.mjs"
 );
 
-var { Weave } = ChromeUtils.importESModule(
-  "resource://services-sync/main.sys.mjs"
-);
-
-var { FxAccounts, getFxAccountsSingleton } = ChromeUtils.importESModule(
-  "resource://gre/modules/FxAccounts.sys.mjs"
-);
-var fxAccounts = getFxAccountsSingleton();
-
 var TAB_SESSION_ID = crypto.randomUUID();
 
 XPCOMUtils.defineLazyServiceGetters(this, {
@@ -116,7 +107,6 @@ ChromeUtils.defineESModuleGetters(this, {
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   SiteDataManager: "resource:///modules/SiteDataManager.sys.mjs",
   TransientPrefs: "resource:///modules/TransientPrefs.sys.mjs",
-  UIState: "resource://services-sync/UIState.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
 });
 
@@ -354,8 +344,9 @@ const CONFIG_PANES = Object.freeze({
     module:
       "chrome://browser/content/preferences/config/passwords-autofill.mjs",
   },
+  // Fix for Deleted Sync
   profiles: {
-    parent: srdSectionEnabled("sync") ? "sync" : "general",
+    parent: "general",
     l10nId: "preferences-profiles-group-header",
     groupIds: ["profilePane"],
   },
@@ -410,21 +401,6 @@ const CONFIG_PANES = Object.freeze({
     iconSrc: "chrome://browser/skin/preferences/category-search.svg",
     module: "chrome://browser/content/preferences/config/search.mjs",
     replaces: "search",
-  },
-  sync: {
-    l10nId: "account-sync-section",
-    iconSrc: "chrome://browser/skin/fxa/avatar-empty.svg",
-    groupIds: [
-      "defaultBrowserSync",
-      "accountDisabled",
-      "account",
-      "sync",
-      "importBrowserData",
-      "profiles",
-      "backup",
-    ],
-    module: "chrome://browser/content/preferences/config/account-sync.mjs",
-    replaces: "sync",
   },
   moreFromMozilla: {
     l10nId: "more-from-moz-page-header",
@@ -540,21 +516,7 @@ function init_all() {
       );
   }
 
-  // The Sync category needs to be the last of the "real" categories
-  // registered and initialized since many tests wait for the
-  // "sync-pane-loaded" observer notification before starting the test.
-  let accountsEnabled = Services.prefs.getBoolPref(
-    "identity.fxaccounts.enabled"
-  );
-  let categorySync = document.getElementById("category-sync");
-  if (redesignEnabled) {
-    categorySync.setAttribute("data-l10n-id", "pane-account-sync-title2");
-    categorySync.iconSrc = "chrome://browser/skin/fxa/avatar-empty.svg";
-    categorySync.hidden = false;
-  } else if (accountsEnabled) {
-    categorySync.hidden = false;
-    register_module("paneSync", gSyncPane);
-  }
+
   register_module("paneSearchResults", gSearchResultsPane);
   for (let [id, config] of Object.entries(CONFIG_PANES)) {
     if (!redesignEnabled && config.replaces) {
@@ -654,27 +616,9 @@ function recordSettingChangeTelemetry(id) {
  *   What triggered the navigation. Defaults to "Click" if aCategory is provided,
  *   otherwise "Initial".
  */
-async function gotoPref(
-  aCategory,
-  aShowReason = aCategory ? "Click" : "Initial"
-) {
-  let redesignEnabled = srdSectionPrefs.all;
-  let categories = document.getElementById("categories");
-  const kDefaultCategoryInternalName = redesignEnabled
-    ? "paneSync"
-    : "paneGeneral";
-  const kDefaultCategory = redesignEnabled ? "sync" : "general";
-  let hash = document.location.hash;
-  let category = aCategory || hash.substring(1) || kDefaultCategoryInternalName;
-
-  let breakIndex = category.indexOf("-");
-  // Subcategories allow for selecting smaller sections of the preferences
-  // until proper search support is enabled (bug 1353954).
-  let subcategory =
-    breakIndex != -1 ? category.substring(breakIndex + 1) : null;
-  if (subcategory) {
-    category = category.substring(0, breakIndex);
-  }
+// Fix for deleted Sync 2.0
+const kDefaultCategoryInternalName = "paneGeneral";
+const kDefaultCategory = "general";
 
   // Subcategories could have new destinations when the settings-redesign pref
   // is enabled. We need to resolve the legacy category and

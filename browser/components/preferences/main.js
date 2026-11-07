@@ -85,6 +85,10 @@ const ICON_URL_APP =
 // For CSS. Can be one of "ask", "save" or "handleInternally". If absent, the icon URL
 // was set by us to a custom handler icon and CSS should not try to override it.
 const APP_ICON_ATTR_NAME = "appHandlerIcon";
+// Added
+const { SettingGroupManager } = ChromeUtils.importESModule(
+  "chrome://browser/content/preferences/config/SettingGroupManager.mjs"
+);
 
 const OPEN_EXTERNAL_LINK_NEXT_TO_ACTIVE_TAB_VALUE =
   Ci.nsIBrowserDOMWindow.OPEN_NEWTAB_AFTER_CURRENT;
@@ -505,16 +509,13 @@ const DefaultBrowserHelper = {
    * @type {boolean}
    */
   get canCheck() {
-    return (
-      this.shellSvc &&
-      /**
-       * Flatpak does not support setting nor detection of default browser
-       */
-      !gGIOService?.isRunningUnderFlatpak
-    );
+    let isFlatpak =
+    typeof gGIOService !== "undefined" &&
+    Boolean(gGIOService?.isRunningUnderFlatpak);
+
+    return Boolean(this.shellSvc && !isFlatpak);
   },
 };
-
 Preferences.addSetting({
   id: "alwaysCheckDefault",
   pref: "browser.shell.checkDefaultBrowser",
@@ -719,14 +720,17 @@ function createStartupConfig(hidden = false) {
     ],
   };
 }
-
-SettingGroupManager.registerGroups({
-  defaultBrowser: createDefaultBrowserConfig(),
-  startup: createStartupConfig(
-    Services.prefs.getBoolPref("browser-settings-redesign.enabled", false)
-  ),
-});
-
+// Fix for Settings not loading
+try {
+  SettingGroupManager.registerGroups({
+    defaultBrowser: createDefaultBrowserConfig(),
+      startup: createStartupConfig(
+        Services.prefs.getBoolPref("browser-settings-redesign.enabled", false)
+      ),
+  });
+} catch (e) {
+  console.warn("Setting groups already registered, continuing initialization:", e);
+}
 /**
  * @param {string} id - ID of {@link SettingGroup} custom element.
  */
